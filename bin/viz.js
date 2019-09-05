@@ -74,16 +74,16 @@ function log(...args) {
 
 function getTest() {
 return `
-const titleText = 'Top 10 Most Populous Countries';
-const xAxisLabelText = 'Population';
-
-const svg = d3.select('svg');
-
-const width = +svg.attr('width');
-const height = +svg.attr('height');
-
-const render = data => {
+const render = renderer = data => {
   clearD3Graph();
+
+  const titleText = 'Top 10 Most Populous Countries';
+  const xAxisLabelText = 'Population';
+
+  const svg = d3.select('svg');
+
+  const width = +svg.attr('width');
+  const height = +svg.attr('height');
 
   const xValue = d => d['population'];
   const yValue = d => d.country;

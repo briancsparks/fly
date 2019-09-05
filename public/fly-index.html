@@ -30,6 +30,9 @@
       var codeStr           = '';
       var previousCodeStr   = '';
 
+      var clearGraphForNewData;
+      var renderer;
+
     </script>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -40,6 +43,19 @@
 
       function clearD3Graph() {
         $("#d3container").empty();
+      }
+      function replaceData(data, str) {
+        db        = data;
+        dataStr   = str;
+
+        clearGraphForNewData = true;
+      }
+      function renderData() {
+        if (clearGraphForNewData) {
+          clearD3Graph();
+        }
+        renderer(db);
+        clearGraphForNewData = false;
       }
 
       $(function () {
@@ -61,12 +77,13 @@
 
         socket.on('newdata', function(source, newdata) {
           console.log('newdata', source, {newdata});
-          db = newData;
+          // db = newdata;
+          eval(newdata.str);
         });
 
         socket.on('appenddata', function(source, newdata) {
           console.log('appenddata', source, {newdata});
-          db = [...db, ...newData];
+          db = [...db, ...newdata];
         });
 
         // This is really a function that does whatever it wants to the data
