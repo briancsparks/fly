@@ -1,7 +1,11 @@
 {
   "name": "fly",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
+  "bin": {
+    "fly": "node ./bin/fly.js",
+    "viz": "node ./bin/viz.js"
+  },
   "scripts": {
     "start": "node ./bin/www"
   },
@@ -13,6 +17,7 @@
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
     "sg-argv": "^1.0.41",
-    "socket.io": "^2.2.0"
+    "socket.io": "^2.2.0",
+    "socket.io-client": "^2.2.0"
   }
 }

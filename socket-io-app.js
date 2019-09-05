@@ -1,16 +1,18 @@
 
 const sg                      = require('sg-argv');
+var path = require('path');
 const _                       = sg._;
 
-module.exports.socketApp = function(app, server) {
+module.exports.socketApp = function(app, server, express) {
   const io                      = require('socket.io')(server);
 
   // const ARGV                    = sg.ARGV();
   // const port                    = ARGV.port     || 3333;
 
-  app.get('/fly', (req, res) => {
+  app.get('/', (req, res) => {
     res.sendFile(`${__dirname}/public/fly-index.html`);
   });
+  app.use(express.static(path.join(__dirname, 'public')));
 
   var nextId  = 0;
   var count   = 0;
@@ -25,6 +27,12 @@ module.exports.socketApp = function(app, server) {
     socket.on('data', function(data){
       console.log(`data from ${name}`, data);
       io.emit(`data`, {from: name}, data);
+    });
+
+    socket.on('viz', function(data, callback){
+      console.log(`viz from ${name}`, data);
+      io.emit(`viz`, {from: name}, data);
+      return callback();
     });
 
     socket.on('disconnect', function(){

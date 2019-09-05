@@ -1,8 +1,8 @@
+
 var createError = require('http-errors');
 
 
 module.exports.errorRoutes = function(app, server) {
-  const io                      = require('socket.io')(server);
 
   // catch 404 and forward to error handler
   app.use(function(req, res, next) {

@@ -1,0 +1,65 @@
+
+/**
+ *
+ */
+const sg                      = require('sg-argv');
+const _                       = sg._;
+
+const express                 = require('express');
+const app                     = express();
+const server                  = require('http').createServer(app);
+const io                      = require('socket.io')(server);
+var path = require('path');
+var cookieParser = require('cookie-parser');
+var logger = require('morgan');
+
+// var indexRouter = require('./routes/index');
+// var usersRouter = require('./routes/users');
+
+const ARGV                    = sg.ARGV();
+const port                    = ARGV.port     || 3330;
+
+app.get('/', (req, res) => {
+  res.sendFile(`${__dirname}/fly-index.html`);
+  // res.sendFile(`${__dirname}/index.html`);
+});
+
+var nextId  = 0;
+var count   = 0;
+
+io.on('connection', (socket) => {
+  const id    = nextId++;
+  const name  = `user${id}`;
+
+  console.log(`connection from ${name}`, {name, connected:true});
+  io.emit('data', {from: name}, {name, connected:true});
+
+  socket.on('data', function(data){
+    console.log(`data from ${name}`, data);
+    io.emit(`data`, {from: name}, data);
+  });
+
+  socket.on('disconnect', function(){
+    console.log(`disconnection from ${name}`, {name, connected:false});
+    io.emit('data', {from: name}, {name, connected:false});
+  });
+});
+
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'hbs');
+
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// app.use('/', indexRouter);
+// app.use('/users', usersRouter);
+
+server.listen(port, () => {
+  console.log(`Server listening on ${port}`);
+});
+
+
