@@ -36,7 +36,6 @@
         $('#messages').append($('<li>').text('start'));
         // console.log('starting', 'start');
 
-        // var socket = io('/fly');
         var socket = io();
         $('form').submit(function(e){
           e.preventDefault(); // prevents page reloading
@@ -47,11 +46,11 @@
 
         socket.on('data', function(source, data) {
           $('#messages').append($('<li>').text(`${source.from}: ${JSON.stringify(data)}`));
-          console.log('mmmm', source, data);
+          // console.log('mmmm', source, data);
         });
 
         socket.on('viz', function(meta, code) {
-          console.log('running', code.str);
+          // console.log('running', code.str);
           eval(code.str);
         });
       });

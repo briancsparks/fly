@@ -49,17 +49,13 @@ function fromFile(path) {
 
 function send(payload) {
 
-  // const flyhost = `http://localhost:3330/fly`;
   const flyhost = `http://localhost:3330/`;
 
-  log(`Sending to ${flyhost}:`, payload);
+  log(`Sending to ${flyhost}: ${payload.length} bytes.`);
 
   const socket = io(flyhost);
   socket.on('connect', function() {
-    log(`fly connected`);
-
-
-    // socket.emit('data', {str: payload});
+    // log(`fly connected`);
 
     socket.emit('viz', {str: payload}, function() {
       console.log(`Back from viz trip`);
