@@ -14,8 +14,11 @@
     </style>
   </head>
   <body>
-    <svg width="960" height="500"></svg>
-    <ul id="messages"></ul>
+    <div id="root">
+      <div><svg width="960" height="500" id="d3container"></svg></div>
+      <div id="jqcontainer"></div><ul id="messages"></ul></div>
+    </div>
+
     <form action="">
       <input id="m" autocomplete="off" /><button>Send</button>
     </form>
@@ -23,9 +26,10 @@
     <!-- Placeholder data -->
     <script>
       var dataStr           = '';
-      var data              = [];
+      var db                = [];
       var codeStr           = '';
       var previousCodeStr   = '';
+
     </script>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -33,6 +37,10 @@
     <script src="https://unpkg.com/d3@5.6.0/dist/d3.min.js"></script>
     <script src="/javascripts/bundle.js"></script>
     <script>
+
+      function clearD3Graph() {
+        $("#d3container").empty();
+      }
 
       $(function () {
         $('#messages').append($('<li>').text('start'));
@@ -49,6 +57,22 @@
         socket.on('data', function(source, data) {
           $('#messages').append($('<li>').text(`${source.from}: ${JSON.stringify(data)}`));
           // console.log('mmmm', source, data);
+        });
+
+        socket.on('newdata', function(source, newdata) {
+          console.log('newdata', source, {newdata});
+          db = newData;
+        });
+
+        socket.on('appenddata', function(source, newdata) {
+          console.log('appenddata', source, {newdata});
+          db = [...db, ...newData];
+        });
+
+        // This is really a function that does whatever it wants to the data
+        socket.on('mungedata', function(source, code) {
+          console.log('mungedata', source, {code});
+          eval(code.str);
         });
 
         socket.on('viz', function(source, code) {

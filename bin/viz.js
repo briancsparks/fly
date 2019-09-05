@@ -83,7 +83,7 @@ const width = +svg.attr('width');
 const height = +svg.attr('height');
 
 const render = data => {
-  svg.html('<svg width="960" height="500"></svg>');
+  clearD3Graph();
 
   const xValue = d => d['population'];
   const yValue = d => d.country;
