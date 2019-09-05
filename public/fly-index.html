@@ -22,8 +22,10 @@
 
     <!-- Placeholder data -->
     <script>
-      var dataStr = '';
-      var data    = [];
+      var dataStr           = '';
+      var data              = [];
+      var codeStr           = '';
+      var previousCodeStr   = '';
     </script>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -49,9 +51,22 @@
           // console.log('mmmm', source, data);
         });
 
-        socket.on('viz', function(meta, code) {
+        socket.on('viz', function(source, code) {
           // console.log('running', code.str);
-          eval(code.str);
+          previousCodeStr = codeStr;
+          codeStr         = code.str;
+
+          var err;
+          try {
+            eval(code.str);
+            return;
+          } catch (err_) {
+            err = err_;
+            console.error(err);
+            $('#messages').append($('<li>').text(`${source.from}: Failed... reverting`));
+
+            codeStr         = previousCodeStr;
+          }
         });
       });
 

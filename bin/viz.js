@@ -83,6 +83,8 @@ const width = +svg.attr('width');
 const height = +svg.attr('height');
 
 const render = data => {
+  svg.html('<svg width="960" height="500"></svg>');
+
   const xValue = d => d['population'];
   const yValue = d => d.country;
   const margin = { top: 50, right: 40, bottom: 77, left: 180 };
