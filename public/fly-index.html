@@ -14,18 +14,29 @@
     </style>
   </head>
   <body>
+
+    <!-- ------------------------------------------- -->
+    <!-- These are the elements that get hooked into -->
+    <!-- ------------------------------------------- -->
+
     <div id="root">
       <div><svg width="960" height="500" id="d3container"></svg></div>
       <div id="jqcontainer"></div><ul id="messages"></ul></div>
     </div>
 
+    <!-- -------------------------------------------- -->
+    <!-- This is the form that the user can type into -->
+    <!-- -------------------------------------------- -->
+
     <form action="">
       <input id="m" autocomplete="off" /><button>Send</button>
     </form>
 
-    <!-- Placeholder data -->
+    <!-- ---------------------------------------------------------------------------- -->
+    <!-- Here is where we hold the data - page reloads should not clobber the dataset -->
+    <!-- ---------------------------------------------------------------------------- -->
+
     <script>
-      var dataStr           = '';
       var db                = [];
       var codeStr           = '';
       var previousCodeStr   = '';
@@ -35,21 +46,43 @@
 
     </script>
 
+    <!-- -------------------------------------------- -->
+    <!--                   The Libraries              -->
+    <!-- -------------------------------------------- -->
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script src="https://unpkg.com/d3@5.6.0/dist/d3.min.js"></script>
     <script src="/javascripts/bundle.js"></script>
     <script>
 
+      // ------------------------------------------------
+      //                 The Hepers
+      // ------------------------------------------------
+
       function clearD3Graph() {
         $("#d3container").empty();
       }
-      function replaceData(data, str) {
+
+      function replaceData(data) {
         db        = data;
-        dataStr   = str;
 
         clearGraphForNewData = true;
       }
+
+      function augmentData(data) {
+        if (Array.isArray(data)) {
+          db.push(data);
+        } else if (data.items && Array.isArray(data.items)) {
+          db = {...db, ...data, items: [...(db.items ||[]), ...data.items]};
+        } else {
+          db = {...db, ...data};
+        }
+        db        = data;
+
+        clearGraphForNewData = true;
+      }
+
       function renderData() {
         if (clearGraphForNewData) {
           clearD3Graph();
@@ -58,10 +91,17 @@
         clearGraphForNewData = false;
       }
 
-      $(function () {
-        $('#messages').append($('<li>').text('start'));
-        // console.log('starting', 'start');
+      // ------------------------------------------------
+      // The main (on-load) function
+      // ------------------------------------------------
 
+      $(function () {
+        // ---------------------------------------------------------------------------------------
+        //         Left over from demo that I started with
+
+        $('#messages').append($('<li>').text('start'));
+
+        // When the user types into the form, broadcast it
         var socket = io();
         $('form').submit(function(e){
           e.preventDefault(); // prevents page reloading
@@ -70,28 +110,36 @@
           return false;
         });
 
+        // We are receiving a plain (non-functional) message
         socket.on('data', function(source, data) {
           $('#messages').append($('<li>').text(`${source.from}: ${JSON.stringify(data)}`));
-          // console.log('mmmm', source, data);
         });
 
-        socket.on('newdata', function(source, newdata) {
-          console.log('newdata', source, {newdata});
-          // db = newdata;
-          eval(newdata.str);
+        // ---------------------------------------------------------------------------------------
+
+        // We are receiving a request to replace the entire dataset
+        socket.on('newdata', function(source, newdata) {                      console.log('newdata', source, {newdata});
+          replaceData(newdata);
+          // eval(newdata.str);
         });
 
-        socket.on('appenddata', function(source, newdata) {
-          console.log('appenddata', source, {newdata});
-          db = [...db, ...newdata];
+        // We are receiving a request to augment the data, but we do not know the format
+        socket.on('appenddata', function(source, newdata) {                   console.log('appenddata', source, {newdata});
+          console.log('Request to augment data, but what is it?', {older: db, newer: newdata});
+          augmentData(newdata);
+          // db = [...db, ...newdata];
         });
 
         // This is really a function that does whatever it wants to the data
-        socket.on('mungedata', function(source, code) {
-          console.log('mungedata', source, {code});
+        socket.on('mungedata', function(source, code) {                       console.log('mungedata', source, {code});
           eval(code.str);
+
+          clearGraphForNewData = true;
         });
 
+        // ---------------------------------------------------------------------------------------
+
+        // Replace the visualization
         socket.on('viz', function(source, code) {
           // console.log('running', code.str);
           previousCodeStr = codeStr;
@@ -109,6 +157,8 @@
             codeStr         = previousCodeStr;
           }
         });
+
+        //------ End
       });
 
       </script>

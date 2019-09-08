@@ -17,7 +17,7 @@ module.exports.socketApp = function(app, server, express) {
     const id    = nextId++;
     const name  = `user${id}`;
 
-    console.log(`connection from ${name}`, {name, connected:true});
+    console.log(`connection from ${name}`, {name, connected:true});   /*********/
     io.emit('data', {from: name}, {name, connected:true});
 
     "newdata,appenddata,mungedata".split(',').forEach(eventName => {
@@ -29,13 +29,13 @@ module.exports.socketApp = function(app, server, express) {
     });
 
     socket.on('viz', function(data, callback){
-      console.log(`viz from ${name}: ${data.length} bytes.`);
+      console.log(`viz from ${name}: ${data.length} bytes.`);   /*********/
       io.emit(`viz`, {from: name}, data);
       return callback();
     });
 
     socket.on('disconnect', function(){
-      console.log(`disconnection from ${name}`, {name, connected:false});
+      console.log(`disconnection from ${name}`, {name, connected:false});   /*********/
       io.emit('data', {from: name}, {name, connected:false});
     });
   });

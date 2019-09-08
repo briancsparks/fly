@@ -28,7 +28,7 @@ var   totalLength   = 0;
 
 // -----------------------------------------------------
 
-// Reading the data
+// Read from stdin
 function fromStdin() {
   process.stdin.resume();
   process.stdin.on('data', function(buf) {
@@ -54,7 +54,60 @@ function fromFile(path) {
   }
 
   payload = payload || fs.readFileSync(path);
-  send(payload);
+  munge(payload);
+}
+
+
+
+// -----------------------------------------------------
+
+// Which data-manipulation function should we use?
+function munge(...data) {
+  if (argv._[1] || argv.replace) {
+    return replace(...data);
+  }
+  return augment(...data);
+}
+
+
+
+// -----------------------------------------------------
+
+// Add a 'replacement' function
+function replace(...data) {
+  var dataStr = data[0];
+
+  var scriptText = `
+    const dataStr = ${dataStr};
+
+    const data = d3.csvParse(dataStr).map(d => ({...d, population: +d.population * 1000}));
+
+    replaceData(data, dataStr);
+    renderData();
+    `;
+
+  return send(scriptText);
+}
+
+
+
+
+// -----------------------------------------------------
+
+// Add a 'augment' function
+function augment(data) {
+  var dataStr = data[0];
+
+  var scriptText = `
+    const dataStr = ${dataStr};
+
+    const data = d3.csvParse(dataStr).map(d => ({...d, population: +d.population * 1000}));
+
+    appenddata(data, dataStr);
+    renderData();
+    `;
+
+  return send(scriptText);
 }
 
 
@@ -63,6 +116,7 @@ function fromFile(path) {
 
 // Send
 function send(payload) {
+  console.log(`sending payload:`, {payload});
 
   const flyhost = `http://localhost:3330/`;
 
@@ -88,27 +142,44 @@ function log(...args) {
 
 
 function getTest() {
-return `
-const dataStr =
-\`country,population
-China,1415046
-India,1354052
-United States,326767
-Indonesia,266795
-Brazil,210868
-Pakistan,200814
-Nigeria,195875
-Bangladesh,166368
-Russia,143965
-Foobar,139999
-Mexico,130759\`;
+  return `
+  \`country,population
+  China,1415046
+  India,1354052
+  United States,326767
+  Indonesia,266795
+  Brazil,210868
+  Pakistan,200814
+  Nigeria,195875
+  Bangladesh,166368
+  Russia,143965
+  Foobar,139999
+  Mexico,130759\`;
+  `;
+  }
 
-const data = d3.csvParse(dataStr).map(d => ({...d, population: +d.population * 1000}));
+  // function getTest() {
+  //   return `
+  //   const dataStr =
+  //   \`country,population
+  //   China,1415046
+  //   India,1354052
+  //   United States,326767
+  //   Indonesia,266795
+  //   Brazil,210868
+  //   Pakistan,200814
+  //   Nigeria,195875
+  //   Bangladesh,166368
+  //   Russia,143965
+  //   Foobar,139999
+  //   Mexico,130759\`;
 
-replaceData(data, dataStr);
-renderData();
+  //   const data = d3.csvParse(dataStr).map(d => ({...d, population: +d.population * 1000}));
 
-`;
-}
+  //   replaceData(data, dataStr);
+  //   renderData();
+
+  //   `;
+  //   }
 
 // render(d3.csvParse(dataStr).map(d => ({...d, population: +d.population * 1000})));

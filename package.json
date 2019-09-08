@@ -7,6 +7,7 @@
     "viz": "node ./bin/viz.js"
   },
   "scripts": {
+    "begin": "pm2 start bin/www --watch --name Fly -- --port 3330",
     "start": "node ./bin/www"
   },
   "dependencies": {
