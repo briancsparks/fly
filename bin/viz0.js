@@ -51,13 +51,13 @@ function send(payload) {
 
   const flyhost = `http://localhost:3330/`;
 
-  log(`Sending viz to ${flyhost}: ${payload.length} bytes.`);
+  log(`Sending to ${flyhost}: ${payload.length} bytes.`);
 
   const socket = io(flyhost);
   socket.on('connect', function() {
     // log(`fly connected`);
 
-    socket.emit('viz', {str: payload}, function() {
+    socket.emit('viz0', {str: payload}, function() {
       console.log(`Back from viz trip`);
       socket.close();
     });

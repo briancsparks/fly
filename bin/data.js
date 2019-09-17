@@ -37,7 +37,7 @@ function fromStdin() {
   });
   process.stdin.on('end', function() {
     const payload = Buffer.concat(buffers, totalLength).toString();
-    send(payload);
+    newdata(payload);
   });
 }
 
@@ -51,10 +51,11 @@ function fromFile(path) {
 
   if (path === 'test') {
     payload = getTest();
+    return mungedata(payload);
   }
 
   payload = payload || fs.readFileSync(path);
-  munge(payload);
+  newdata(payload);
 }
 
 
@@ -86,7 +87,7 @@ function replace(...data) {
     renderData();
     `;
 
-  return send(scriptText);
+  return newdata(scriptText);
 }
 
 
@@ -107,16 +108,30 @@ function augment(data) {
     renderData();
     `;
 
-  return send(scriptText);
+  return newdata(scriptText);
 }
 
 
 
 // -----------------------------------------------------
 
-// Send
-function send(payload) {
-  console.log(`sending payload:`, {payload});
+// newdata
+function newdata(payload) {
+  return send('newdata', payload);
+}
+
+// appenddata
+function appenddata(payload) {
+  return send('appenddata', payload);
+}
+
+// mungedata
+function mungedata(payload) {
+  return send('mungedata', payload);
+}
+
+function newdataX(payload) {
+  console.log(`sending payload (newdata):`, {payload});
 
   const flyhost = `http://localhost:3330/`;
 
@@ -134,6 +149,25 @@ function send(payload) {
   });
 }
 
+function send(msg, payload) {
+  console.log(`sending payload (send):`, {payload});
+
+  const flyhost = `http://localhost:3330/`;
+
+  log(`Sending to ${flyhost}: ${payload.length} bytes.`);
+
+  const socket = io(flyhost);
+  socket.on('connect', function() {
+    // log(`fly connected`);
+
+    socket.emit(msg, {str: payload}, function() {
+      console.log(`Back from ${msg} trip`);
+      socket.close();
+    });
+
+  });
+}
+
 
 function log(...args) {
   if (disabled) { return; }
@@ -141,8 +175,26 @@ function log(...args) {
 }
 
 
+// function getTest() {
+//   return `
+//   \`country,population
+//   China,1415046
+//   India,1354052
+//   United States,326767
+//   Indonesia,266795
+//   Brazil,210868
+//   Pakistan,200814
+//   Nigeria,195875
+//   Bangladesh,166368
+//   Russia,143965
+//   Foobar,139999
+//   Mexico,130759\`;
+//   `;
+// }
+
 function getTest() {
   return `
+  const dataStr =
   \`country,population
   China,1415046
   India,1354052
@@ -155,31 +207,13 @@ function getTest() {
   Russia,143965
   Foobar,139999
   Mexico,130759\`;
+
+  const data = d3.csvParse(dataStr).map(d => ({...d, population: +d.population * 1000}));
+
+  replaceData(data, dataStr);
+  renderData();
+
   `;
-  }
-
-  // function getTest() {
-  //   return `
-  //   const dataStr =
-  //   \`country,population
-  //   China,1415046
-  //   India,1354052
-  //   United States,326767
-  //   Indonesia,266795
-  //   Brazil,210868
-  //   Pakistan,200814
-  //   Nigeria,195875
-  //   Bangladesh,166368
-  //   Russia,143965
-  //   Foobar,139999
-  //   Mexico,130759\`;
-
-  //   const data = d3.csvParse(dataStr).map(d => ({...d, population: +d.population * 1000}));
-
-  //   replaceData(data, dataStr);
-  //   renderData();
-
-  //   `;
-  //   }
+}
 
 // render(d3.csvParse(dataStr).map(d => ({...d, population: +d.population * 1000})));

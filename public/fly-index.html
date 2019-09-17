@@ -33,7 +33,7 @@
     </form>
 
     <!-- ---------------------------------------------------------------------------- -->
-    <!-- Here is where we hold the data - page reloads should not clobber the dataset -->
+    <!-- Here is where we hold the data - code reloads should not clobber the dataset -->
     <!-- ---------------------------------------------------------------------------- -->
 
     <script>
@@ -42,19 +42,13 @@
       var previousCodeStr   = '';
 
       var clearGraphForNewData;
+      var clearGraphForNewViz;
       var renderer;
 
-    </script>
-
-    <!-- -------------------------------------------- -->
-    <!--                   The Libraries              -->
-    <!-- -------------------------------------------- -->
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
-    <script src="https://unpkg.com/d3@5.6.0/dist/d3.min.js"></script>
-    <script src="/javascripts/bundle.js"></script>
-    <script>
+      var ingestData      = _ingestData;
+      var replaceData     = _replaceData;
+      var aggregateData   = _aggregateData;
+      var augmentData     = _augmentData;
 
       // ------------------------------------------------
       //                 The Hepers
@@ -64,13 +58,45 @@
         $("#d3container").empty();
       }
 
-      function replaceData(data) {
-        db        = data;
+      function _ingestData(data_) {
+        var   objData;
+        var   isClean   = false;
+        const strData   = strify(data_);
+
+        if (strData) {
+          // Was stringify-able format, `strData` is now the string version
+          objData = JSON.parse(strData); // TODO: try...catch
+          isClean = true;
+        } else {
+          // Was not stringify-able
+          if (typeof data_ === 'object') {
+            // Nothing to do, already an object
+            objData = data_;
+            isClean = true;
+          } else if (Array.isArray(data_)) {
+            // An array becomes items
+            objData = {items: data_};
+          } else {
+            objData = {__just__: data_};
+          }
+        }
+
+        if (!isClean) {
+          console.log(`Unclean parsing data`, {data: data_});
+        }
+
+        return objData
+      }
+
+      function _replaceData(data) {
+        db        = ingestData(data);
 
         clearGraphForNewData = true;
       }
 
-      function augmentData(data) {
+      function _aggregateData(data_) {
+        var data = ingestData(data_);
+
         if (Array.isArray(data)) {
           db.push(data);
         } else if (data.items && Array.isArray(data.items)) {
@@ -83,13 +109,54 @@
         clearGraphForNewData = true;
       }
 
+      function _augmentData(...args) {
+        return aggregateData(...args);
+      }
+
       function renderData() {
-        if (clearGraphForNewData) {
+        if (clearGraphForNewData || clearGraphForNewViz) {
           clearD3Graph();
         }
         renderer(db);
         clearGraphForNewData = false;
+        clearGraphForNewViz  = false;
       }
+
+      function tostr(x) {
+        if (typeof x === 'string') {
+          return x;
+        }
+
+        if (x instanceof ArrayBuffer) {
+          return String.fromCharCode.apply(null, new Uint8Array(x));
+        }
+
+        return x;
+      }
+
+      function strify(x) {
+        if (typeof x === 'string') {
+          return x;
+        }
+
+        if (x instanceof ArrayBuffer) {
+          return String.fromCharCode.apply(null, new Uint8Array(x));
+        }
+
+        return;
+      }
+
+    </script>
+
+    <!-- -------------------------------------------- -->
+    <!--                   The Libraries              -->
+    <!-- -------------------------------------------- -->
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="https://unpkg.com/d3@5.6.0/dist/d3.min.js"></script>
+    <script src="/javascripts/bundle.js"></script>
+    <script>
 
       // ------------------------------------------------
       // The main (on-load) function
@@ -118,36 +185,74 @@
         // ---------------------------------------------------------------------------------------
 
         // We are receiving a request to replace the entire dataset
-        socket.on('newdata', function(source, newdata) {                      console.log('newdata', source, {newdata});
-          replaceData(newdata);
+        socket.on('newdata', function(source, newdata) {                      console.log('newdata', source, {newdata:{...newdata, str:tostr(newdata.str)}});
+          // replaceData(ingestData(newdata.str));
+          replaceData(newdata.str);
           // eval(newdata.str);
+          renderData();
         });
 
         // We are receiving a request to augment the data, but we do not know the format
         socket.on('appenddata', function(source, newdata) {                   console.log('appenddata', source, {newdata});
           console.log('Request to augment data, but what is it?', {older: db, newer: newdata});
-          augmentData(newdata);
+          // aggregateData(ingestData(newdata));
+          aggregateData(newdata);
           // db = [...db, ...newdata];
+          renderData();
         });
 
         // This is really a function that does whatever it wants to the data
-        socket.on('mungedata', function(source, code) {                       console.log('mungedata', source, {code});
-          eval(code.str);
+        socket.on('mungedata', function(source, code) {                       console.log('mungedata', source, {code:{...code, str:tostr(code.str)}});
+          eval(tostr(code.str));
 
           clearGraphForNewData = true;
+          renderData();
+        });
+
+        // ---------------------------------------------------------------------------------------
+
+        // This is really a function that does whatever it wants
+        socket.on('munge', function(source, code) {                       console.log('munge', source, {code:{...code, str:tostr(code.str)}});
+          eval(tostr(code.str));
         });
 
         // ---------------------------------------------------------------------------------------
 
         // Replace the visualization
         socket.on('viz', function(source, code) {
-          // console.log('running', code.str);
+          console.log('running-viz', code.str);
           previousCodeStr = codeStr;
-          codeStr         = code.str;
+          codeStr         = tostr(code.str);
 
           var err;
           try {
-            eval(code.str);
+            eval(codeStr);
+            console.log(`Rendering (${code.str.byteLength} bytes)`, {source, code, codeStr});
+            // return;
+          } catch (err_) {
+            err = err_;
+            console.error(err);
+            $('#messages').append($('<li>').text(`${source.from}: Failed... reverting`));
+
+            codeStr         = previousCodeStr;
+          }
+
+          clearGraphForNewViz = true;
+          renderData();
+
+        });
+
+        // Replace the visualization - raw version
+        socket.on('viz0', function(source, code) {
+          console.log('running-viz0', code.str);
+          previousCodeStr = codeStr;
+          codeStr         = tostr(code.str);
+
+          var err;
+          try {
+            clearD3Graph();
+            eval(codeStr);
+            // console.log(`Rendering (${code.str.byteLength} bytes)`, {source, code, codeStr});
             return;
           } catch (err_) {
             err = err_;
@@ -159,6 +264,7 @@
         });
 
         //------ End
+
       });
 
       </script>

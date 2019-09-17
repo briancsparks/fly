@@ -28,8 +28,14 @@ module.exports.socketApp = function(app, server, express) {
       });
     });
 
+    socket.on('munge', function(data, callback){
+      console.log(`munge from ${name}: ${data.str.length} bytes.`);   /*********/
+      io.emit(`munge`, {from: name}, data);
+      return callback();
+    });
+
     socket.on('viz', function(data, callback){
-      console.log(`viz from ${name}: ${data.length} bytes.`);   /*********/
+      console.log(`viz from ${name}: ${data.str.length} bytes.`);   /*********/
       io.emit(`viz`, {from: name}, data);
       return callback();
     });
